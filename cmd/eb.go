@@ -15,8 +15,15 @@
 package cmd
 
 import (
+	"fmt"
+	"os"
+
+	"text/template"
+
+	"github.com/go-xweb/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/tacogips/awstool/cmd/awstool"
 )
 
 // ebCmd represents the eb command
@@ -31,12 +38,80 @@ var ebListCmd = &cobra.Command{
 	Short: "util for elastic beanstalk",
 	Long:  `util for elastic beanstalk`,
 	Run: func(cmd *cobra.Command, args []string) {
-		viper.Get("eb")
-		//awstool.ListEB(region string, filterAppNames []*string)
+
+		flagRegionFlag := cmd.Flag("r")
+		outputFileFlag := cmd.Flag("o")
+
+		outputFile := outputFileFlag.Value.String()
+		if len(outputFile) == 0 {
+			log.Errorf("invalid output path [%s]", outputFile)
+			return
+		}
+
+		err := viper.ReadInConfig()
+		if err != nil {
+			log.Error(err)
+			return
+		}
+
+		region := flagRegionFlag.Value.String()
+		if len(region) == 0 {
+			region = viper.GetString("region")
+		}
+		filterAppNames := viper.GetStringSlice("eb.filter_app_names")
+
+		apps, err := awstool.ListEB(region, filterAppNames)
+		if err != nil {
+			log.Error(err)
+			return
+		}
+		if len(apps) == 0 {
+			log.Errorf("no applications found region:%s filter-app-names:%#v", region, filterAppNames)
+			return
+		}
+
+		tmpl := viper.GetString("eb.template")
+
+		o, err := os.Create(outputFile)
+		if err != nil {
+			log.Error(err)
+			return
+		}
+		defer o.Close()
+
+		useTemplate := len(tmpl) != 0
+
+		var t *template.Template
+		if useTemplate {
+			t = template.New("eblisttmpl")
+
+			_, err := t.Parse(tmpl)
+			if err != nil {
+				log.Error(err)
+				return
+			}
+		}
+
+		for _, app := range apps {
+			if useTemplate {
+				err := t.Execute(o, app)
+				if err != nil {
+					log.Error(err)
+					return
+				}
+			} else {
+				fmt.Fprintf(o, "%#v", app)
+			}
+		}
+
 	},
 }
 
 func init() {
+
+	ebListCmd.Flags().String("o", "eblist.out", "output")
+
+	ebCmd.PersistentFlags().String("r", "", "region")
 	ebCmd.AddCommand(ebListCmd)
 	RootCmd.AddCommand(ebCmd)
 
