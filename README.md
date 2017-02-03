@@ -1,4 +1,7 @@
 ## Install
+```
+go install github.com/tacogips/awstool
+```
 
 ## Usage
 - put config file at $HOME/.awstool (sample file is at cmd/awstool/awstool_config.yaml)
