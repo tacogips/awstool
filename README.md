@@ -22,9 +22,14 @@ type EBApp struct {
 }
 
 type EBEnv struct {
-	Env       *eb.EnvironmentDescription
-	EnvRes    *eb.EnvironmentResourceDescription
-	Instances []*ec2.Instance
-	ELBs      []*elb.LoadBalancerDescription
+	Env                 *eb.EnvironmentDescription
+	EnvRes              *eb.EnvironmentResourceDescription
+	InstanceAndStatuses []InstanceAndStatus
+	ELBs                []*elb.LoadBalancerDescription
+}
+
+type InstanceAndStatus struct {
+	Instance *ec2.Instance
+	Status   *ec2.InstanceStatus
 }
 ```
