@@ -1,0 +1,30 @@
+region: "ap-northeast-1"
+eb:
+  filter_app_names:
+    - "your-app-name"
+  template: >
+     {{range $env := .Envs}}
+      +  Env: {{ $env.Env.EnvironmentName }}(App: {{$env.Env.ApplicationName}})
+        + URL: {{$env.Env.EndpointURL}}
+
+        + instance num :{{ len $env.InstanceAndStatuses }}
+        {{range $instance := $env.InstanceAndStatuses}}
+            - status        : {{$instance.Status.InstanceState.Name}} ( {{$instance.Status.InstanceStatus.Status}} )
+            - instance type : {{$instance.Instance.InstanceType}}
+            - instance ip   : {{$instance.Instance.PrivateIpAddress}}
+            - ami           : {{$instance.Instance.ImageId}}
+            - instance id   : {{$instance.Instance.InstanceId}}
+        {{end}}
+
+        + ELB
+        {{range $elb := $env.ELBs}}
+          - elb name : {{$elb.LoadBalancerName }}
+          - listener
+            {{range $listener := $elb.ListenerDescriptions }}
+            - protocol        : {{$listener.Listener.Protocol}}
+              - instance port : {{$listener.Listener.InstancePort}}
+              - lb port       : {{$listener.Listener.LoadBalancerPort}}
+            {{end}}
+        {{end}}
+     {{end}}
+
