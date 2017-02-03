@@ -1,0 +1,7 @@
+region: "ap-northeast-1"
+eb:
+  filter_app_names:
+  templates:
+    - > {.APP.ApplicationName}
+
+

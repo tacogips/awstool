@@ -1,10 +1,12 @@
-package main
+package awstool
 
 import (
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	eb "github.com/aws/aws-sdk-go/service/elasticbeanstalk"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/go-xweb/log"
 )
 
 type EBApp struct {
@@ -19,31 +21,41 @@ type EBEnv struct {
 	ELBs      []*elb.LoadBalancerDescription
 }
 
-func listAllEB() ([]*ec2.Instance, error) {
+func ListEB(region string, filterAppNames []*string) ([]EBApp, error) {
+
+	sess := session.New(&aws.Config{Region: aws.String(region)})
 
 	ebclient := eb.New(sess)
 	ec2client := ec2.New(sess)
 	elbclient := elb.New(sess)
 
-	apps, err := ebclient.DescribeApplications(&eb.DescribeApplicationsInput{})
+	apps, err := ebclient.DescribeApplications(&eb.DescribeApplicationsInput{
+		ApplicationNames: filterAppNames,
+	})
+
 	if err != nil {
+		log.Error(" ad DescribeApplications %s", err.Error())
 		return nil, err
 	}
 
+	var ebApps []EBApp
 	for _, app := range apps.Applications {
-
-		envs, err := ebclient.ComposeEnvironments(&eb.ComposeEnvironmentsInput{ApplicationName: app.ApplicationName})
-
+		ebApp := EBApp{App: app}
+		envs, err := ebclient.DescribeEnvironments(&eb.DescribeEnvironmentsInput{ApplicationName: app.ApplicationName})
 		if err != nil {
+			log.Error(" error ComposeEnvironments %s", err.Error())
 			return nil, err
 		}
+
+		var ebEnvs []EBEnv
 		for _, env := range envs.Environments {
 			envResorces, err := ebclient.DescribeEnvironmentResources(&eb.DescribeEnvironmentResourcesInput{EnvironmentId: env.EnvironmentId})
 			if err != nil {
+				log.Error(" error DescribeEnvironmentResources%s", err.Error())
 				return nil, err
 			}
 
-			evEnv := EBEnv{
+			ebEnv := EBEnv{
 				Env:    env,
 				EnvRes: envResorces.EnvironmentResources,
 			}
@@ -63,7 +75,7 @@ func listAllEB() ([]*ec2.Instance, error) {
 
 				for _, resv := range instances.Reservations {
 					for _, instance := range resv.Instances {
-						evEnv.Instances = append(evEnv.Instances, instance)
+						ebEnv.Instances = append(ebEnv.Instances, instance)
 					}
 				}
 
@@ -71,12 +83,13 @@ func listAllEB() ([]*ec2.Instance, error) {
 					instanceSearchCond.NextToken = instances.NextToken
 					instances, err = ec2client.DescribeInstances(instanceSearchCond)
 					if err != nil {
+						log.Error(" error DescribeInstances %s", err.Error())
 						return nil, err
 					}
 
 					for _, resv := range instances.Reservations {
 						for _, instance := range resv.Instances {
-							evEnv.Instances = append(evEnv.Instances, instance)
+							ebEnv.Instances = append(ebEnv.Instances, instance)
 						}
 					}
 				}
@@ -92,13 +105,19 @@ func listAllEB() ([]*ec2.Instance, error) {
 				//** "page size" unsupported now **
 				elbOut, err := elbclient.DescribeLoadBalancers(&elb.DescribeLoadBalancersInput{LoadBalancerNames: lbnames})
 				if err != nil {
+					log.Error(" error DescribeLoadBalancers %s", err.Error())
 					return nil, err
 				}
-				evEnv.ELBs = elbOut.LoadBalancerDescriptions
+				ebEnv.ELBs = elbOut.LoadBalancerDescriptions
 			}
 
+			ebEnvs = append(ebEnvs, ebEnv)
 		}
+
+		ebApp.Envs = ebEnvs
+
+		ebApps = append(ebApps, ebApp)
 	}
-	return nil, nil
+	return ebApps, nil
 
 }
