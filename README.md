@@ -1,6 +1,6 @@
 ## Install
 ```
-go install github.com/tacogips/awstool
+go get github.com/tacogips/awstool
 ```
 
 ## Usage
