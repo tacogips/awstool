@@ -39,6 +39,54 @@ var s3DLCmd = &cobra.Command{
 	Long:  `dl s3 files`,
 	Run: func(cmd *cobra.Command, args []string) {
 
+		prefixFlag := cmd.Flag("pre")
+		flagRegionFlag := cmd.Flag("r")
+		outputDirFlag := cmd.Flag("dir")
+		bucketCmd := cmd.Flag("b")
+
+		err := viper.ReadInConfig()
+		if err != nil {
+			log.Error(err)
+			return
+		}
+
+		prefix := prefixFlag.Value.String()
+		bucketName := bucketCmd.Value.String()
+		if len(bucketName) == 0 {
+			bucketName = viper.GetString("s3.bucket")
+		}
+
+		if len(bucketName) == 0 {
+			log.Errorf("no bucket name")
+			return
+		}
+
+		region := flagRegionFlag.Value.String()
+		if len(region) == 0 {
+			region = viper.GetString("region")
+		}
+
+		outputDir := outputDirFlag.Value.String()
+		if len(outputFile) == 0 {
+			outputDir = time.Now().Format(fmt.Sprintf("./s3_pre_%s_2006_01_02_15_04_05", prefix))
+		}
+		if _, err := os.Stat(outputDir); err != nil {
+			log.Errorf("dir exists %s", outputDir)
+			return
+		} else {
+			err := os.MkdirAll(outputDir, 0774)
+			if err != nil {
+				log.Errorf("failed to create dir %s :%s", outputDir, err.Error())
+				return
+			}
+		}
+
+		s3files, err := awstool.S3DL(region, bucketName, prefix)
+		if err != nil {
+			log.Error(err)
+			return
+		}
+
 	},
 }
 
@@ -133,9 +181,11 @@ func init() {
 
 	// -- List cmd ---
 	s3ListCmd.Flags().String("o", "s3list.out", "output")
-	// -- DL cmd ---
-	s3DLCmd.Flags().String("dir", "s3file", "output dir")
 
+	// -- DL cmd ---
+	s3DLCmd.Flags().String("dir", "", "output dir(must be new dir)")
+
+	// -- s3 cmd ---
 	s3Cmd.PersistentFlags().String("r", "", "regionCmd")
 	s3Cmd.PersistentFlags().String("b", "", "bucket")
 	s3Cmd.PersistentFlags().String("pre", "", "prefix(w/o bucket)")
@@ -148,15 +198,5 @@ func init() {
 	//	RootCmd.AddCommand(ebCmd)
 
 	RootCmd.AddCommand(s3Cmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// s3Cmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// s3Cmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 
 }
