@@ -13,7 +13,7 @@ import (
 	"github.com/go-xweb/log"
 )
 
-func S3DL(region, bucket, prefix string, destDir string) error {
+func S3DownloadPrefix(region, bucket, prefix string, destDir string) error {
 	files, err := S3List(region, bucket, prefix)
 	if err != nil {
 		return err

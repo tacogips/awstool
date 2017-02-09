@@ -67,7 +67,7 @@ var s3DLCmd = &cobra.Command{
 		}
 
 		outputDir := outputDirFlag.Value.String()
-		if len(outputFile) == 0 {
+		if len(outputDir) == 0 {
 			outputDir = time.Now().Format(fmt.Sprintf("./s3_pre_%s_2006_01_02_15_04_05", prefix))
 		}
 		if _, err := os.Stat(outputDir); err != nil {
@@ -81,7 +81,7 @@ var s3DLCmd = &cobra.Command{
 			}
 		}
 
-		s3files, err := awstool.S3DL(region, bucketName, prefix)
+		err = awstool.S3DownloadPrefix(region, bucketName, prefix, outputDir)
 		if err != nil {
 			log.Error(err)
 			return
