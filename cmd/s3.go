@@ -51,6 +51,11 @@ var s3DLCmd = &cobra.Command{
 		}
 
 		prefix := prefixFlag.Value.String()
+		if len(prefix) == 0 {
+			log.Error("need prefix")
+			return
+		}
+
 		bucketName := bucketCmd.Value.String()
 		if len(bucketName) == 0 {
 			bucketName = viper.GetString("s3.bucket")
@@ -70,10 +75,15 @@ var s3DLCmd = &cobra.Command{
 		if len(outputDir) == 0 {
 			outputDir = time.Now().Format(fmt.Sprintf("./s3_pre_%s_2006_01_02_15_04_05", prefix))
 		}
-		if _, err := os.Stat(outputDir); err != nil {
-			log.Errorf("dir exists %s", outputDir)
+		if _, err := os.Stat(outputDir); err == nil {
+			log.Errorf("dest dir already exists %s", outputDir)
 			return
 		} else {
+			if !os.IsNotExist(err) {
+				log.Errorf("dest dir error %s", outputDir)
+				return
+			}
+
 			err := os.MkdirAll(outputDir, 0774)
 			if err != nil {
 				log.Errorf("failed to create dir %s :%s", outputDir, err.Error())
@@ -114,6 +124,11 @@ var s3ListCmd = &cobra.Command{
 		}
 
 		prefix := prefixFlag.Value.String()
+		if len(prefix) == 0 {
+			log.Error("need prefix")
+			return
+		}
+
 		bucketName := bucketCmd.Value.String()
 		if len(bucketName) == 0 {
 			bucketName = viper.GetString("s3.bucket")

@@ -26,7 +26,6 @@ func S3List(region, bucket, prefix string) (S3Files, error) {
 		files.Objects = append(files.Objects, obj)
 	}
 
-	println(prefix)
 	input := &s3.ListObjectsInput{
 		Bucket: aws.String(bucket),
 		Prefix: aws.String(prefix),

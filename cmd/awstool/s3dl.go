@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -24,15 +25,23 @@ func S3DownloadPrefix(region, bucket, prefix string, destDir string) error {
 
 	bulkDlCount := 10 //TODO to be changable
 
-	fmt.Printf("download %d files", len(files.Objects))
+	fmt.Printf("download %d files. Total %d bytes \n", len(files.Objects), files.SumSize)
 
-	dlTargts, rest := files.Objects[:bulkDlCount], files.Objects[bulkDlCount:]
+	var dlTargts []*s3.Object
+	var rest []*s3.Object
+
+	if len(files.Objects) < bulkDlCount {
+		dlTargts, rest = files.Objects, nil
+	} else {
+		dlTargts, rest = files.Objects[:bulkDlCount], files.Objects[bulkDlCount:]
+	}
 
 	for len(dlTargts) > 0 {
-		wg := new(sync.WaitGroup)
-		fmt.Errorf("Downloading %d files", len(dlTargts))
+		fmt.Printf("Downloading %d files\n", len(dlTargts))
 
-		for _, obj := range dlTargts {
+		wg := new(sync.WaitGroup)
+		for _, tgt := range dlTargts {
+			obj := *tgt
 			wg.Add(1)
 
 			go func() {
@@ -49,7 +58,9 @@ func S3DownloadPrefix(region, bucket, prefix string, destDir string) error {
 				}
 				defer out.Body.Close()
 
-				destFile := filepath.Join(destDir, *obj.Key)
+				outputFileName := strings.Replace(*obj.Key, "/", "_", -1)
+
+				destFile := filepath.Join(destDir, outputFileName)
 
 				outf, err := os.Create(destFile)
 				if err != nil {
@@ -61,7 +72,11 @@ func S3DownloadPrefix(region, bucket, prefix string, destDir string) error {
 		}
 		wg.Wait()
 
-		dlTargts, rest = rest[:bulkDlCount], rest[bulkDlCount:]
+		if len(rest) < bulkDlCount {
+			dlTargts, rest = rest, nil
+		} else {
+			dlTargts, rest = rest[:bulkDlCount], rest[bulkDlCount:]
+		}
 	}
 
 	return nil
