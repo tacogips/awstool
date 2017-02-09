@@ -10,6 +10,7 @@ import (
 type S3Files struct {
 	Bucket  string
 	SumSize int64
+	Count   int
 	Objects []*s3.Object
 }
 
@@ -19,14 +20,16 @@ func S3List(region, bucket, prefix string) (S3Files, error) {
 	s3client := s3.New(sess)
 	files := S3Files{Bucket: bucket}
 
+	appendToFiles := func(obj *s3.Object) {
+		files.SumSize = files.SumSize + *obj.Size
+		files.Count += 1
+		files.Objects = append(files.Objects, obj)
+	}
+
+	println(prefix)
 	input := &s3.ListObjectsInput{
 		Bucket: aws.String(bucket),
 		Prefix: aws.String(prefix),
-	}
-
-	appendToFiles := func(obj *s3.Object) {
-		files.SumSize = files.SumSize + *obj.Size
-		files.Objects = append(files.Objects, obj)
 	}
 
 	output, err := s3client.ListObjects(input)

@@ -16,6 +16,8 @@ package cmd
 
 import (
 	"fmt"
+	"html/template"
+	"os"
 
 	"github.com/go-xweb/log"
 	"github.com/spf13/cobra"
@@ -47,12 +49,18 @@ var s3ListCmd = &cobra.Command{
 
 		prefixFlag := cmd.Flag("pre")
 		flagRegionFlag := cmd.Flag("r")
-		//		outputFileFlag := cmd.Flag("o")
+		outputFileFlag := cmd.Flag("o")
 		bucketCmd := cmd.Flag("b")
 
 		err := viper.ReadInConfig()
 		if err != nil {
 			log.Error(err)
+			return
+		}
+
+		outputFile := outputFileFlag.Value.String()
+		if len(outputFile) == 0 {
+			log.Errorf("invalid output path [%s]", outputFile)
 			return
 		}
 
@@ -77,22 +85,55 @@ var s3ListCmd = &cobra.Command{
 			log.Error(err)
 			return
 		}
-		fmt.Printf("%#v", s3files)
+
+		tmpl := viper.GetString("s3.template")
+
+		o, err := os.Create(outputFile)
+		if err != nil {
+			log.Error(err)
+			return
+		}
+		defer o.Close()
+
+		useTemplate := len(tmpl) != 0
+
+		var t *template.Template
+		if useTemplate {
+			t = template.New("s3listtmpl")
+
+			_, err := t.Parse(tmpl)
+			if err != nil {
+				log.Error(err)
+				return
+			}
+		}
+
+		if useTemplate {
+			err := t.Execute(o, s3files)
+			if err != nil {
+				log.Error(err)
+				return
+			}
+		} else {
+			fmt.Fprintf(o, "%#v", s3files)
+		}
+
 	},
 }
 
 func init() {
 
 	// -- List cmd ---
-	s3ListCmd.Flags().String("pre", "prefix(w/o bucket)", "output dir")
-
+	s3ListCmd.Flags().String("o", "s3list.out", "output")
 	// -- DL cmd ---
 	s3DLCmd.Flags().String("dir", "s3file", "output dir")
-	s3DLCmd.Flags().String("pre", "prefix(w/o bucket)", "output dir")
 
-	s3Cmd.PersistentFlags().String("r", "", "region")
+	s3Cmd.PersistentFlags().String("r", "", "regionCmd")
 	s3Cmd.PersistentFlags().String("b", "", "bucket")
+	s3Cmd.PersistentFlags().String("pre", "", "prefix(w/o bucket)")
+
 	s3Cmd.AddCommand(s3DLCmd)
+	s3Cmd.AddCommand(s3ListCmd)
 
 	//	ebCmd.PersistentFlags().String("r", "", "region")
 	//	ebCmd.AddCommand(ebListCmd)
