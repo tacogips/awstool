@@ -28,3 +28,18 @@ eb:
         {{end}}
      {{end}}
 
+s3:
+  bucket: "your-default-bucket"
+  template: >
+     {
+       bucket: "{{.Bucket}}",
+       sum_size: {{.SumSize}},
+       {{range $obj := .Objects}}
+         {
+           key:"{{$obj.Key}}",
+           size: "{{AsKiB $obj.Size}}kb",
+           lastModified:"{{ToJstFormatFunc $obj.LastModified }}",
+         },
+       {{ end }}
+     }
+
