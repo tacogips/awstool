@@ -33,3 +33,21 @@ type InstanceAndStatus struct {
 	Status   *ec2.InstanceStatus
 }
 ```
+
+
+## s3
+### list
+
+```
+awstool s3 list
+```
+### output obj struct(for template)
+
+```
+type S3Files struct {
+	Bucket  string
+	SumSize int64
+	Count   int
+	Objects []*s3.Object
+}
+```
