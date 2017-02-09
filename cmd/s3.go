@@ -16,8 +16,9 @@ package cmd
 
 import (
 	"fmt"
-	"html/template"
 	"os"
+	"text/template"
+	"time"
 
 	"github.com/go-xweb/log"
 	"github.com/spf13/cobra"
@@ -99,7 +100,13 @@ var s3ListCmd = &cobra.Command{
 
 		var t *template.Template
 		if useTemplate {
-			t = template.New("s3listtmpl")
+			funcMap := template.FuncMap{
+				"ToJstFormatFunc": awstool.ToJstFormatFunc(time.RFC3339),
+				"AsKiB":           awstool.AsKiB,
+				"AsMiB":           awstool.AsMiB,
+				"AsGiB":           awstool.AsGiB,
+			}
+			t = template.New("s3listtmpl").Funcs(funcMap)
 
 			_, err := t.Parse(tmpl)
 			if err != nil {
@@ -109,6 +116,7 @@ var s3ListCmd = &cobra.Command{
 		}
 
 		if useTemplate {
+
 			err := t.Execute(o, s3files)
 			if err != nil {
 				log.Error(err)
