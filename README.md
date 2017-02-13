@@ -39,7 +39,7 @@ type InstanceAndStatus struct {
 ### list
 
 ```
-awstool s3 list
+awstool s3 list --pre="your/key"
 ```
 ### output obj struct(for template)
 
@@ -51,3 +51,10 @@ type S3Files struct {
 	Objects []*s3.Object
 }
 ```
+
+### dl
+
+```
+awstool s3 dl --pre="your/key"
+```
+
