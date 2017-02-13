@@ -101,7 +101,9 @@ func ListEB(region string, filterAppNames []string) ([]EBApp, error) {
 
 						instanceAndStatus := InstanceAndStatus{
 							Instance: instance,
-							Status:   status.InstanceStatuses[0],
+						}
+						if len(status.InstanceStatuses) > 0 {
+							instanceAndStatus.Status = status.InstanceStatuses[0]
 						}
 
 						ebEnv.InstanceAndStatuses = append(ebEnv.InstanceAndStatuses, instanceAndStatus)
