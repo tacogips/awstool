@@ -53,7 +53,7 @@ var s3DLCmd = &cobra.Command{
 
 		prefix := prefixFlag.Value.String()
 		if len(prefix) == 0 {
-			log.Error("need prefix")
+			log.Error("need prefix -pre=...")
 			return
 		}
 
@@ -126,7 +126,7 @@ var s3ListCmd = &cobra.Command{
 
 		prefix := prefixFlag.Value.String()
 		if len(prefix) == 0 {
-			log.Error("need prefix")
+			log.Error("need prefix -pre=...")
 			return
 		}
 
