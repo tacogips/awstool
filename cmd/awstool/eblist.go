@@ -22,8 +22,9 @@ type EBEnv struct {
 }
 
 type InstanceAndStatus struct {
-	Instance *ec2.Instance
-	Status   *ec2.InstanceStatus
+	Instance       *ec2.Instance
+	Status         *ec2.InstanceStatus
+	SecurityGroups []*ec2.SecurityGroup
 }
 
 func ListEB(region string, filterAppNames []string) ([]EBApp, error) {
@@ -99,9 +100,26 @@ func ListEB(region string, filterAppNames []string) ([]EBApp, error) {
 							return nil, err
 						}
 
-						instanceAndStatus := InstanceAndStatus{
-							Instance: instance,
+						// security group
+						var sgIDs []*string
+						for _, sg := range instance.SecurityGroups {
+							sgIDs = append(sgIDs, sg.GroupId)
 						}
+
+						sgDescInput := ec2.DescribeSecurityGroupsInput{
+							GroupIds: sgIDs,
+						}
+						sgs, err := ec2client.DescribeSecurityGroups(&sgDescInput)
+						if err != nil {
+							log.Error(" error DescribeSecurityGroups %s", err.Error())
+							return nil, err
+						}
+
+						instanceAndStatus := InstanceAndStatus{
+							Instance:       instance,
+							SecurityGroups: sgs.SecurityGroups,
+						}
+
 						if len(status.InstanceStatuses) > 0 {
 							instanceAndStatus.Status = status.InstanceStatuses[0]
 						}

@@ -31,6 +31,7 @@ type EBEnv struct {
 type InstanceAndStatus struct {
 	Instance *ec2.Instance
 	Status   *ec2.InstanceStatus
+	SecurityGroups []*ec2.SecurityGroup
 }
 ```
 
